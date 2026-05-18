@@ -1,6 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, streamText } from 'ai';
-import type { Citation } from '@/types';
+import type { Citation, Flashcard, QuizQuestion, NotebookGuide } from '@/types';
 
 const MODEL = 'claude-sonnet-4-20250514';
 
@@ -22,6 +22,8 @@ const FORMAT_TONES: Record<string, string> = {
   'deep-dive': 'Be thorough and explore every angle. Take time to discuss nuances.',
   briefing: 'Be concise and focused. Cover key points efficiently.',
   'study-guide': 'Be educational and structured. Explain concepts clearly.',
+  critique: 'Evaluate strengths and weaknesses. Be constructively critical.',
+  debate: 'Present opposing viewpoints. Be fair to both sides.',
   custom: 'Be natural and conversational.',
 };
 
@@ -135,4 +137,76 @@ export async function decomposeQuery(query: string): Promise<string[]> {
   }
 
   return parsed.filter((q) => typeof q === 'string' && q.trim().length > 0);
+}
+
+export async function generateFlashcards(
+  sourceContent: string,
+): Promise<Flashcard[]> {
+  const { text } = await generateText({
+    model: anthropic(MODEL),
+    system:
+      'Generate 12 flashcards from the source material. Cover key concepts, definitions, and important facts. Output as JSON array of {id, front, back, difficulty} where difficulty is "easy"|"medium"|"hard". Distribute: 4 easy, 5 medium, 3 hard.',
+    prompt: `Based on the following source material:\n\n${sourceContent}`,
+  });
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse flashcards from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as Flashcard[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Invalid flashcards format');
+  }
+
+  return parsed;
+}
+
+export async function generateQuiz(
+  sourceContent: string,
+): Promise<QuizQuestion[]> {
+  const { text } = await generateText({
+    model: anthropic(MODEL),
+    system:
+      'Generate 10 multiple-choice questions from the source material. Each question should test understanding, not just recall. Output as JSON array of {id, question, options (4 choices), correctIndex (0-3), explanation}.',
+    prompt: `Based on the following source material:\n\n${sourceContent}`,
+  });
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse quiz from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as QuizQuestion[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Invalid quiz format');
+  }
+
+  return parsed;
+}
+
+export async function generateNotebookGuide(
+  sourceContent: string,
+): Promise<NotebookGuide> {
+  const { text } = await generateText({
+    model: anthropic(MODEL),
+    system:
+      'Analyze the source material and create a notebook guide. Output as JSON: {summary: string (2-3 paragraphs overview), keyTopics: string[] (5-8 key topics), suggestedQuestions: string[] (6 insightful questions to explore)}',
+    prompt: `Based on the following source material:\n\n${sourceContent}`,
+  });
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse notebook guide from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as NotebookGuide;
+
+  if (!parsed.summary || !parsed.keyTopics || !parsed.suggestedQuestions) {
+    throw new Error('Invalid notebook guide format');
+  }
+
+  return parsed;
 }

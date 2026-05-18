@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 import { generateAudioScript } from '@/lib/ai/claude';
 import type { AudioFormat } from '@/types';
 
-const VALID_FORMATS: AudioFormat[] = ['deep-dive', 'briefing', 'study-guide', 'custom'];
+const VALID_FORMATS: AudioFormat[] = ['deep-dive', 'briefing', 'critique', 'debate', 'custom'];
 
 export async function POST(
   request: NextRequest,

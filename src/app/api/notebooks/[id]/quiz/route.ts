@@ -2,9 +2,7 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { generateStudyAid, generateFlashcards, generateQuiz } from '@/lib/ai/claude';
-
-const VALID_TYPES = ['faq', 'study-guide', 'timeline', 'briefing', 'flashcard', 'quiz'] as const;
+import { generateQuiz } from '@/lib/ai/claude';
 
 export async function POST(
   request: NextRequest,
@@ -27,16 +25,6 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const { type } = body;
-
-    if (!type || !VALID_TYPES.includes(type)) {
-      return Response.json(
-        { error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
     // Load all source content
     const sources = db
       .select()
@@ -55,27 +43,13 @@ export async function POST(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
-    // Route to appropriate generator
-    if (type === 'flashcard') {
-      const flashcards = await generateFlashcards(sourceContent);
-      return Response.json({ flashcards });
-    }
+    const questions = await generateQuiz(sourceContent);
 
-    if (type === 'quiz') {
-      const questions = await generateQuiz(sourceContent);
-      return Response.json({ questions });
-    }
-
-    // Generate standard study aid
-    const content = await generateStudyAid(type, sourceContent);
-
-    return Response.json({
-      studyAid: { type, content },
-    });
+    return Response.json({ questions });
   } catch (error) {
-    console.error('Failed to generate study aid:', error);
+    console.error('Failed to generate quiz:', error);
     return Response.json(
-      { error: 'Failed to generate study aid' },
+      { error: 'Failed to generate quiz' },
       { status: 500 }
     );
   }

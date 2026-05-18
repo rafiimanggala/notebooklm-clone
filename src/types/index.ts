@@ -1,6 +1,7 @@
 export type SourceType = 'pdf' | 'text' | 'url' | 'youtube';
-export type AudioFormat = 'deep-dive' | 'briefing' | 'study-guide' | 'custom';
+export type AudioFormat = 'deep-dive' | 'briefing' | 'critique' | 'debate' | 'custom';
 export type MessageRole = 'user' | 'assistant';
+export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz';
 
 export interface Notebook {
   id: string;
@@ -16,9 +17,10 @@ export interface Source {
   title: string;
   type: SourceType;
   content: string;
-  metadata: string; // JSON string
+  metadata: string;
   fileSize: number | null;
   createdAt: number;
+  enabled?: boolean;
 }
 
 export interface Chunk {
@@ -27,7 +29,7 @@ export interface Chunk {
   notebookId: string;
   content: string;
   chunkIndex: number;
-  metadata: string; // JSON string
+  metadata: string;
 }
 
 export interface Citation {
@@ -41,7 +43,7 @@ export interface Message {
   notebookId: string;
   role: MessageRole;
   content: string;
-  citations: string; // JSON string array of Citation
+  citations: string;
   createdAt: number;
 }
 
@@ -50,10 +52,31 @@ export interface AudioOverview {
   notebookId: string;
   title: string;
   format: AudioFormat;
-  script: string; // JSON string
+  script: string;
   audioUrl: string | null;
   status: 'pending' | 'generating' | 'completed' | 'failed';
   createdAt: number;
+}
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface NotebookGuide {
+  summary: string;
+  keyTopics: string[];
+  suggestedQuestions: string[];
 }
 
 export interface ChatRequest {
@@ -85,6 +108,6 @@ export interface RetrievalResult {
 }
 
 export interface StudyAid {
-  type: 'faq' | 'study-guide' | 'timeline' | 'briefing';
+  type: StudyAidType;
   content: string;
 }
