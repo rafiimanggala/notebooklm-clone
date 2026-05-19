@@ -276,9 +276,12 @@ export default function NotebooksPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredNotebooks.map((nb, idx) => (
-                <button
+                <div
                   key={nb.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => router.push(`/notebook/${nb.id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/notebook/${nb.id}`); }}
                   className="group text-left p-4 rounded-xl bg-[var(--surface)] border border-[var(--outline)] hover:shadow-[var(--shadow-2)] transition-all duration-200 cursor-pointer animate-fade-in relative"
                   style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}
                 >
@@ -354,7 +357,7 @@ export default function NotebooksPage() {
                       <span className="text-[12px]">Last opened {formatDate(nb.updatedAt)}</span>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
