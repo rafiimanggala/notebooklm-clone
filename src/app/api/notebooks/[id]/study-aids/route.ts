@@ -2,9 +2,9 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { generateStudyAid, generateFlashcards, generateQuiz } from '@/lib/ai/claude';
+import { generateStudyAid, generateFlashcards, generateQuiz, generateMindMap, generateDataTable, generateTOC, generateSlides } from '@/lib/ai/claude';
 
-const VALID_TYPES = ['faq', 'study-guide', 'timeline', 'briefing', 'flashcard', 'quiz'] as const;
+const VALID_TYPES = ['faq', 'study-guide', 'timeline', 'briefing', 'flashcard', 'quiz', 'mind-map', 'data-table', 'toc', 'slides'] as const;
 
 export async function POST(
   request: NextRequest,
@@ -64,6 +64,26 @@ export async function POST(
     if (type === 'quiz') {
       const questions = await generateQuiz(sourceContent);
       return Response.json({ questions });
+    }
+
+    if (type === 'mind-map') {
+      const mindMap = await generateMindMap(sourceContent);
+      return Response.json({ mindMap });
+    }
+
+    if (type === 'data-table') {
+      const tables = await generateDataTable(sourceContent);
+      return Response.json({ tables });
+    }
+
+    if (type === 'toc') {
+      const toc = await generateTOC(sourceContent);
+      return Response.json({ toc });
+    }
+
+    if (type === 'slides') {
+      const slides = await generateSlides(sourceContent);
+      return Response.json({ slides });
     }
 
     // Generate standard study aid

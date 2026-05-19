@@ -62,6 +62,14 @@ export const quizSets = sqliteTable('quiz_sets', {
   createdAt: integer('created_at').notNull(),
 });
 
+export const studyAidResults = sqliteTable('study_aid_results', {
+  id: text('id').primaryKey(),
+  notebookId: text('notebook_id').notNull().references(() => notebooks.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'mind-map' | 'data-table' | 'toc' | 'slides'
+  result: text('result').notNull(), // JSON string
+  createdAt: integer('created_at').notNull(),
+});
+
 export const audioOverviews = sqliteTable('audio_overviews', {
   id: text('id').primaryKey(),
   notebookId: text('notebook_id')

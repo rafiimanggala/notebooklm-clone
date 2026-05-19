@@ -131,11 +131,11 @@ export function AudioDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-2xl max-h-[80vh] flex flex-col rounded-2xl">
+      <DialogContent className="bg-[var(--bg)] border border-[var(--outline)] text-[var(--text-primary)] sm:max-w-2xl max-h-[80vh] flex flex-col rounded-[28px]">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2.5 text-base font-semibold font-[family-name:var(--font-heading)]">
-            <div className="size-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Mic className="size-3.5 text-blue-400" />
+          <DialogTitle className="text-[var(--text-primary)] flex items-center gap-2.5 text-base font-semibold font-[family-name:var(--font-heading)]">
+            <div className="size-7 rounded-lg bg-[var(--primary-container)] flex items-center justify-center">
+              <Mic className="size-3.5 text-[var(--nlm-primary)]" />
             </div>
             Audio Overview
           </DialogTitle>
@@ -145,8 +145,8 @@ export function AudioDialog({
           /* Format selection */
           <div className="flex flex-col gap-4 py-1">
             {!hasSources && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                <p className="text-xs text-amber-400 leading-relaxed">
+              <div className="bg-[var(--primary-container)] border border-[var(--outline)] rounded-xl p-3">
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   Add sources to your notebook before generating an audio overview.
                 </p>
               </div>
@@ -161,19 +161,19 @@ export function AudioDialog({
                     onClick={() => setSelectedFormat(format.value)}
                     className={`p-4 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       selectedFormat === format.value
-                        ? 'border-blue-500/50 bg-blue-500/10 shadow-lg shadow-blue-500/5'
-                        : 'border-zinc-800/60 bg-zinc-800/40 hover:border-zinc-700/80 hover:bg-zinc-800/60'
+                        ? 'border-[var(--nlm-primary)] bg-[var(--primary-container)] shadow-[var(--shadow-1)]'
+                        : 'border-[var(--outline)] bg-[var(--surface)] hover:border-[var(--text-secondary)] hover:bg-[var(--surface-container)]'
                     } ${format.value === 'custom' ? 'col-span-2 sm:col-span-1' : ''}`}
                   >
                     <div className={`size-8 rounded-lg flex items-center justify-center mb-2.5 ${
-                      selectedFormat === format.value ? 'bg-blue-500/20' : 'bg-zinc-700/50'
+                      selectedFormat === format.value ? 'bg-[var(--nlm-primary)]/20' : 'bg-[var(--surface-container)]'
                     } transition-colors duration-200`}>
                       <FormatIcon className={`size-4 ${
-                        selectedFormat === format.value ? 'text-blue-400' : 'text-zinc-500'
+                        selectedFormat === format.value ? 'text-[var(--nlm-primary)]' : 'text-[var(--text-secondary)]'
                       } transition-colors duration-200`} />
                     </div>
-                    <p className="text-xs font-medium text-white mb-0.5">{format.label}</p>
-                    <p className="text-[11px] text-zinc-500 leading-relaxed">{format.description}</p>
+                    <p className="text-xs font-medium text-[var(--text-primary)] mb-0.5">{format.label}</p>
+                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{format.description}</p>
                   </button>
                 );
               })}
@@ -184,22 +184,22 @@ export function AudioDialog({
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="Describe how you want the audio overview to be structured..."
-                className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-500 resize-none rounded-xl text-sm"
+                className="bg-[var(--surface)] border-[var(--outline)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] resize-none rounded-xl text-sm"
                 rows={3}
               />
             )}
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
-                <p className="text-xs text-red-400">{error}</p>
+              <div className="bg-[var(--error)]/10 border border-[var(--error)]/20 rounded-xl p-3">
+                <p className="text-xs text-[var(--error)]">{error}</p>
               </div>
             )}
 
-            <DialogFooter className="bg-zinc-900/50 border-zinc-800/60">
+            <DialogFooter className="bg-transparent border-0">
               <Button
                 variant="ghost"
                 onClick={handleClose}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-container)] rounded-full"
               >
                 Cancel
               </Button>
@@ -210,7 +210,7 @@ export function AudioDialog({
                   !hasSources ||
                   (selectedFormat === 'custom' && !customPrompt.trim())
                 }
-                className="bg-blue-600 hover:bg-blue-500 text-white gap-2 rounded-lg"
+                className="bg-[var(--nlm-primary)] hover:opacity-90 text-[var(--on-primary)] gap-2 rounded-full"
               >
                 {generating ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -225,32 +225,31 @@ export function AudioDialog({
           /* Script display */
           <div className="flex flex-col gap-4 flex-1 min-h-0">
             {/* Audio player stub */}
-            <div className="relative bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/40">
+            <div className="relative bg-[var(--surface)] rounded-xl p-4 border border-[var(--outline)]">
               <div className="flex items-center gap-3">
                 <button
-                  className="size-10 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center transition-all duration-200 cursor-pointer shrink-0"
+                  className="size-10 rounded-full bg-[var(--nlm-primary)] hover:opacity-90 flex items-center justify-center transition-all duration-200 cursor-pointer shrink-0"
                   title="Audio generation coming soon"
                 >
-                  <Play className="size-4 text-white ml-0.5" />
+                  <Play className="size-4 text-[var(--on-primary)] ml-0.5" />
                 </button>
                 <div className="flex-1 min-w-0">
-                  {/* Waveform placeholder */}
                   <div className="flex items-center gap-[2px] h-8">
                     {Array.from({ length: 40 }).map((_, i) => (
                       <div
                         key={i}
-                        className="w-1 rounded-full bg-zinc-600/60"
+                        className="w-1 rounded-full bg-[var(--outline)]"
                         style={{ height: `${Math.random() * 60 + 20}%` }}
                       />
                     ))}
                   </div>
-                  <p className="text-[10px] text-zinc-600 mt-1">Audio generation coming soon</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-1">Audio generation coming soon</p>
                 </div>
-                <Volume2 className="size-4 text-zinc-600 shrink-0" />
+                <Volume2 className="size-4 text-[var(--text-secondary)] shrink-0" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
               <div className="size-1.5 rounded-full bg-green-500" />
               Script generated
             </div>
@@ -271,8 +270,8 @@ export function AudioDialog({
                       <div
                         className={`shrink-0 size-7 rounded-full flex items-center justify-center text-[10px] font-semibold ${
                           isSpeaker1
-                            ? 'bg-blue-500/15 text-blue-400'
-                            : 'bg-purple-500/15 text-purple-400'
+                            ? 'bg-[var(--primary-container)] text-[var(--nlm-primary)]'
+                            : 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400'
                         }`}
                       >
                         {isSpeaker1 ? 'S1' : 'S2'}
@@ -280,14 +279,14 @@ export function AudioDialog({
                       <div
                         className={`flex-1 rounded-xl px-3.5 py-2.5 ${
                           isSpeaker1
-                            ? 'bg-zinc-800/60'
-                            : 'bg-zinc-800/30'
+                            ? 'bg-[var(--surface)]'
+                            : 'bg-[var(--surface-container)]'
                         }`}
                       >
-                        <p className={`text-[10px] font-semibold mb-1 ${isSpeaker1 ? 'text-blue-400' : 'text-purple-400'}`}>
+                        <p className={`text-[10px] font-semibold mb-1 ${isSpeaker1 ? 'text-[var(--nlm-primary)]' : 'text-purple-600 dark:text-purple-400'}`}>
                           {entry.speaker}
                         </p>
-                        <p className="text-xs text-zinc-300 leading-relaxed">
+                        <p className="text-xs text-[var(--text-primary)] leading-relaxed">
                           {entry.text}
                         </p>
                       </div>
@@ -297,17 +296,17 @@ export function AudioDialog({
               </div>
             </ScrollArea>
 
-            <DialogFooter className="bg-zinc-900/50 border-zinc-800/60">
+            <DialogFooter className="bg-transparent border-0">
               <Button
                 variant="ghost"
                 onClick={() => setScript(null)}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-container)] rounded-full"
               >
                 Generate Another
               </Button>
               <Button
                 onClick={handleClose}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
+                className="bg-[var(--nlm-primary)] hover:opacity-90 text-[var(--on-primary)] rounded-full"
               >
                 Done
               </Button>

@@ -49,6 +49,7 @@
 }
 
 :root {
+  /* shadcn tokens */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -81,9 +82,28 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* NotebookLM Design Tokens — Light Theme */
+  --bg: #FFFFFF;
+  --surface: #F8F9FA;
+  --surface-container: #F1F3F4;
+  --surface-container-high: #E8EAED;
+  --text-primary: #1F1F1F;
+  --text-secondary: #5F6368;
+  --nlm-primary: #1A73E8;
+  --primary-container: #D2E3FC;
+  --on-primary: #FFFFFF;
+  --outline: #DADCE0;
+  --outline-variant: #E8EAED;
+  --error: #D93025;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-2: 0 2px 6px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.12);
+  --scrim: rgba(0,0,0,0.32);
 }
 
 .dark {
+  /* shadcn tokens — dark */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -115,6 +135,24 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* NotebookLM Design Tokens — Dark Theme */
+  --bg: #1F1F1F;
+  --surface: #292A2D;
+  --surface-container: #35363A;
+  --surface-container-high: #3C4043;
+  --text-primary: #E8EAED;
+  --text-secondary: #9AA0A6;
+  --nlm-primary: #8AB4F8;
+  --primary-container: #394457;
+  --on-primary: #1F1F1F;
+  --outline: #5F6368;
+  --outline-variant: #3C4043;
+  --error: #F28B82;
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.5);
+  --scrim: rgba(0,0,0,0.5);
 }
 
 @layer base {
@@ -129,10 +167,10 @@
   }
 }
 
-/* Custom scrollbar styles */
+/* Custom scrollbar styles — adapts to theme */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: var(--outline) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -145,12 +183,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #3f3f46;
+  background-color: var(--outline);
   border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #52525b;
+  background-color: var(--text-secondary);
 }
 
 /* Animations */

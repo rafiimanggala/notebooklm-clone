@@ -1,6 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import type { Citation, Flashcard, QuizQuestion, NotebookGuide } from '@/types';
+import type { Citation, Flashcard, QuizQuestion, NotebookGuide, MindMapNode, DataTableResult, TOCEntry, SlideContent } from '@/types';
 
 const execFileAsync = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || `${process.env.HOME}/.local/bin/claude`;
@@ -195,6 +195,98 @@ ${sourceContent}`);
 
   if (!Array.isArray(parsed) || parsed.length === 0) {
     throw new Error('Invalid quiz format');
+  }
+
+  return parsed;
+}
+
+export async function generateMindMap(
+  sourceContent: string,
+): Promise<MindMapNode> {
+  const text = await callClaude(`INSTRUCTIONS: Analyze the source material and create a hierarchical mind map. The central node should be the main topic. Output as JSON: {id, label, children: [{id, label, children: [...]}]}. Create 4-6 main branches with 2-4 sub-nodes each. Use descriptive but concise labels (3-8 words). Output ONLY the JSON object.
+
+Based on the following source material:
+
+${sourceContent}`);
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse mind map from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as MindMapNode;
+
+  if (!parsed.id || !parsed.label) {
+    throw new Error('Invalid mind map format');
+  }
+
+  return parsed;
+}
+
+export async function generateDataTable(
+  sourceContent: string,
+): Promise<DataTableResult[]> {
+  const text = await callClaude(`INSTRUCTIONS: Extract structured data from the sources into 1-3 tables. Each table should organize related facts, comparisons, or data points. Output as JSON array: [{title, headers: string[], rows: string[][]}]. Keep tables focused — max 8 columns, max 20 rows per table. Output ONLY the JSON array.
+
+Based on the following source material:
+
+${sourceContent}`);
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse data tables from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as DataTableResult[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Invalid data table format');
+  }
+
+  return parsed;
+}
+
+export async function generateTOC(
+  sourceContent: string,
+): Promise<TOCEntry[]> {
+  const text = await callClaude(`INSTRUCTIONS: Create a detailed table of contents for the source material. Include main topics (level 1), subtopics (level 2), and key details (level 3). Each entry should have a brief summary. Output as JSON array: [{id, title, level, summary}]. Include 10-20 entries total. Output ONLY the JSON array.
+
+Based on the following source material:
+
+${sourceContent}`);
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse table of contents from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as TOCEntry[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Invalid table of contents format');
+  }
+
+  return parsed;
+}
+
+export async function generateSlides(
+  sourceContent: string,
+): Promise<SlideContent[]> {
+  const text = await callClaude(`INSTRUCTIONS: Create a presentation with 8-12 slides from the source material. Each slide has a title and content (use markdown: headers, bullet points, bold for emphasis). Include a title slide, content slides, and a summary slide. Output as JSON array: [{id, title, content, notes}]. Output ONLY the JSON array.
+
+Based on the following source material:
+
+${sourceContent}`);
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse slides from AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as SlideContent[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Invalid slides format');
   }
 
   return parsed;

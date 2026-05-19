@@ -18,14 +18,31 @@ export const metadata: Metadata = {
   description: "AI-powered notebook with source-grounded chat",
 };
 
+// Inline script to prevent flash of wrong theme — reads localStorage before paint
+const themeScript = `
+(function() {
+  try {
+    var theme = localStorage.getItem('notebooklm-theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable} dark h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-zinc-950 text-white font-[family-name:var(--font-inter)]">
+    <html lang="en" className={`${inter.variable} ${plusJakarta.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-[family-name:var(--font-inter)]">
         {children}
       </body>
     </html>

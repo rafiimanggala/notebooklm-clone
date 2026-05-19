@@ -1,7 +1,7 @@
 export type SourceType = 'pdf' | 'text' | 'url' | 'youtube' | 'markdown' | 'csv' | 'docx';
 export type AudioFormat = 'deep-dive' | 'briefing' | 'critique' | 'debate' | 'custom';
 export type MessageRole = 'user' | 'assistant';
-export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz';
+export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz' | 'mind-map' | 'data-table' | 'toc' | 'slides';
 
 export type ChatStyle = 'default' | 'analyst' | 'guide' | 'creative' | 'concise';
 
@@ -109,6 +109,33 @@ export interface RetrievalResult {
   chunk: Chunk;
   score: number;
   source: Source;
+}
+
+export interface MindMapNode {
+  id: string;
+  label: string;
+  children?: MindMapNode[];
+  color?: string;
+}
+
+export interface DataTableResult {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
+export interface TOCEntry {
+  id: string;
+  title: string;
+  level: number; // 1, 2, or 3
+  summary?: string;
+}
+
+export interface SlideContent {
+  id: string;
+  title: string;
+  content: string; // markdown
+  notes?: string;
 }
 
 export interface StudyAid {

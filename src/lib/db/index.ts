@@ -44,3 +44,12 @@ try {
     created_at INTEGER NOT NULL
   )`);
 } catch {}
+try {
+  db.run(sql`CREATE TABLE IF NOT EXISTS study_aid_results (
+    id TEXT PRIMARY KEY,
+    notebook_id TEXT NOT NULL REFERENCES notebooks(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`);
+} catch {}
