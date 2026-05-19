@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -18,7 +19,6 @@ export const metadata: Metadata = {
   description: "AI-powered notebook with source-grounded chat",
 };
 
-// Inline script to prevent flash of wrong theme — reads localStorage before paint
 const themeScript = `
 (function() {
   try {
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${plusJakarta.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script id="theme-init" strategy="beforeInteractive">{themeScript}</Script>
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-[family-name:var(--font-inter)]">
         {children}
