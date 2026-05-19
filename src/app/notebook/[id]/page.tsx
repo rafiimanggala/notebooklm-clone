@@ -17,6 +17,7 @@ import {
   Download,
   FileCode,
   MessageSquare,
+  Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { SourcePanel } from '@/components/notebook/source-panel';
 import { ChatPanel } from '@/components/notebook/chat-panel';
 import { SourceViewer } from '@/components/notebook/source-viewer';
@@ -52,7 +61,15 @@ interface RightPanelState {
 }
 
 // Notebook Guide component - shows when sources exist but no chat yet
+const FALLBACK_QUESTIONS = [
+  'What are the main topics covered in my sources?',
+  'Can you summarize the key findings?',
+  'What are the most important takeaways?',
+  'Are there any conflicting viewpoints across sources?',
+];
+
 function NotebookGuidePanel({
+  notebookId,
   sources,
   onQuestionSelect,
   onStudyAidRequest,
@@ -62,12 +79,30 @@ function NotebookGuidePanel({
   onQuestionSelect: (q: string) => void;
   onStudyAidRequest: (type: string) => void;
 }) {
-  const suggestedQuestions = [
-    'What are the main topics covered in my sources?',
-    'Can you summarize the key findings?',
-    'What are the most important takeaways?',
-    'Are there any conflicting viewpoints across sources?',
-  ];
+  const [guideQuestions, setGuideQuestions] = useState<string[]>([]);
+  const [guideLoading, setGuideLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadGuide() {
+      try {
+        const res = await fetch(`/api/notebooks/${notebookId}/guide`);
+        if (!res.ok) throw new Error('Guide fetch failed');
+        const data = await res.json();
+        if (!cancelled && data.suggestedQuestions?.length > 0) {
+          setGuideQuestions(data.suggestedQuestions);
+        }
+      } catch {
+        // Use fallback questions on error
+      } finally {
+        if (!cancelled) setGuideLoading(false);
+      }
+    }
+    loadGuide();
+    return () => { cancelled = true; };
+  }, [notebookId]);
+
+  const questions = guideQuestions.length > 0 ? guideQuestions : FALLBACK_QUESTIONS;
 
   return (
     <div className="flex flex-col items-center justify-center px-8 py-12 max-w-2xl mx-auto animate-fade-in">
@@ -84,26 +119,34 @@ function NotebookGuidePanel({
       {/* Suggested questions */}
       <div className="w-full mb-8">
         <p className="text-xs font-medium text-zinc-500 mb-3 uppercase tracking-wider">Suggested Questions</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {suggestedQuestions.map((q, i) => {
-            const icons = [FileText, Lightbulb, ListChecks, HelpCircle];
-            const Icon = icons[i % icons.length];
-            return (
-              <button
-                key={i}
-                onClick={() => onQuestionSelect(q)}
-                className="group flex items-start gap-3 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/60 hover:bg-zinc-800/80 hover:border-zinc-700/80 transition-all duration-200 text-left cursor-pointer"
-              >
-                <div className="size-7 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 group-hover:bg-blue-500/10 transition-colors duration-200">
-                  <Icon className="size-3.5 text-zinc-500 group-hover:text-blue-400 transition-colors duration-200" />
-                </div>
-                <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors duration-200 leading-relaxed">
-                  {q}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {guideLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-16 rounded-xl bg-zinc-900/80 border border-zinc-800/60 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {questions.map((q, i) => {
+              const icons = [FileText, Lightbulb, ListChecks, HelpCircle];
+              const Icon = icons[i % icons.length];
+              return (
+                <button
+                  key={i}
+                  onClick={() => onQuestionSelect(q)}
+                  className="group flex items-start gap-3 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/60 hover:bg-zinc-800/80 hover:border-zinc-700/80 transition-all duration-200 text-left cursor-pointer"
+                >
+                  <div className="size-7 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 group-hover:bg-blue-500/10 transition-colors duration-200">
+                    <Icon className="size-3.5 text-zinc-500 group-hover:text-blue-400 transition-colors duration-200" />
+                  </div>
+                  <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors duration-200 leading-relaxed">
+                    {q}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Study tools */}
@@ -150,6 +193,11 @@ export default function NotebookPage({
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [studyAidLoading, setStudyAidLoading] = useState(false);
   const [enabledSourceIds, setEnabledSourceIds] = useState<Set<string>>(new Set());
+  const [customInstructions, setCustomInstructions] = useState('');
+  const [chatStyle, setChatStyle] = useState('default');
+  const [instructionsDialogOpen, setInstructionsDialogOpen] = useState(false);
+  const [instructionsDraft, setInstructionsDraft] = useState('');
+  const [instructionsSaving, setInstructionsSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -166,11 +214,17 @@ export default function NotebookPage({
       if (notebookData.notebook) {
         setNotebook(notebookData.notebook);
         setTitleInput(notebookData.notebook.title);
+        setCustomInstructions(notebookData.notebook.customInstructions ?? '');
+        setChatStyle(notebookData.notebook.chatStyle ?? 'default');
       }
       if (sourcesData.sources) {
         setSources(sourcesData.sources);
-        // Enable all sources by default
-        setEnabledSourceIds(new Set(sourcesData.sources.map((s: Source) => s.id)));
+        // Respect enabled field from DB — if field absent treat as enabled
+        setEnabledSourceIds(new Set(
+          sourcesData.sources
+            .filter((s: Source & { enabled?: number }) => s.enabled !== 0)
+            .map((s: Source) => s.id)
+        ));
       }
       if (messagesData.messages) {
         const formatted: ChatMessage[] = messagesData.messages.map(
@@ -247,6 +301,7 @@ export default function NotebookPage({
   }
 
   function handleToggleSource(sourceId: string) {
+    const currentlyEnabled = enabledSourceIds.has(sourceId);
     setEnabledSourceIds((prev) => {
       const next = new Set(prev);
       if (next.has(sourceId)) {
@@ -256,6 +311,12 @@ export default function NotebookPage({
       }
       return next;
     });
+    // Persist toggle to backend
+    fetch(`/api/notebooks/${id}/sources/${sourceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: !currentlyEnabled }),
+    }).catch((err) => console.error('Failed to toggle source:', err));
   }
 
   function handleCitationClick(citation: Citation) {
@@ -275,6 +336,17 @@ export default function NotebookPage({
       setStudyAidLoading(true);
       setRightPanel({ type: 'flashcard', flashcards: [] });
       try {
+        // Try loading saved flashcards first
+        const savedRes = await fetch(`/api/notebooks/${id}/flashcards`);
+        if (savedRes.ok) {
+          const savedData = await savedRes.json();
+          if (savedData.flashcards && savedData.flashcards.length > 0) {
+            setRightPanel({ type: 'flashcard', flashcards: savedData.flashcards });
+            setStudyAidLoading(false);
+            return;
+          }
+        }
+        // No saved data — generate new
         const res = await fetch(`/api/notebooks/${id}/study-aids`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -297,6 +369,17 @@ export default function NotebookPage({
       setStudyAidLoading(true);
       setRightPanel({ type: 'quiz', quizQuestions: [] });
       try {
+        // Try loading saved quiz first
+        const savedRes = await fetch(`/api/notebooks/${id}/quiz`);
+        if (savedRes.ok) {
+          const savedData = await savedRes.json();
+          if (savedData.questions && savedData.questions.length > 0) {
+            setRightPanel({ type: 'quiz', quizQuestions: savedData.questions });
+            setStudyAidLoading(false);
+            return;
+          }
+        }
+        // No saved data — generate new
         const res = await fetch(`/api/notebooks/${id}/study-aids`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -369,6 +452,27 @@ export default function NotebookPage({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Export failed:', err);
+    }
+  }
+
+  async function handleSaveInstructions() {
+    setInstructionsSaving(true);
+    try {
+      const res = await fetch(`/api/notebooks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customInstructions: instructionsDraft }),
+      });
+      const data = await res.json();
+      if (data.notebook) {
+        setNotebook(data.notebook);
+      }
+      setCustomInstructions(instructionsDraft);
+      setInstructionsDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save instructions:', err);
+    } finally {
+      setInstructionsSaving(false);
     }
   }
 
@@ -465,6 +569,19 @@ export default function NotebookPage({
         </div>
 
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              setInstructionsDraft(customInstructions);
+              setInstructionsDialogOpen(true);
+            }}
+            className="text-zinc-500 hover:text-white hover:bg-zinc-800/80 shrink-0 rounded-lg transition-all duration-200"
+            title="Custom Instructions"
+          >
+            <Settings2 className="size-3.5" />
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -555,6 +672,15 @@ export default function NotebookPage({
                 onCitationClick={handleCitationClick}
                 hasSources={sources.length > 0}
                 enabledSourceIds={enabledSourceIds}
+                chatStyle={chatStyle}
+                onChatStyleChange={(style) => {
+                  setChatStyle(style);
+                  fetch(`/api/notebooks/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatStyle: style }),
+                  }).catch((err) => console.error('Failed to save chat style:', err));
+                }}
               />
             </div>
           </div>
@@ -565,6 +691,15 @@ export default function NotebookPage({
             onCitationClick={handleCitationClick}
             hasSources={sources.length > 0}
             enabledSourceIds={enabledSourceIds}
+            chatStyle={chatStyle}
+            onChatStyleChange={(style) => {
+              setChatStyle(style);
+              fetch(`/api/notebooks/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatStyle: style }),
+              }).catch((err) => console.error('Failed to save chat style:', err));
+            }}
           />
         )}
 
@@ -632,6 +767,50 @@ export default function NotebookPage({
         notebookId={id}
         hasSources={sources.length > 0}
       />
+
+      {/* Custom Instructions Dialog */}
+      <Dialog open={instructionsDialogOpen} onOpenChange={setInstructionsDialogOpen}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Custom Instructions</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-zinc-500 -mt-1">
+            Tell the AI how to respond. These instructions apply to all chats in this notebook.
+          </p>
+          <Textarea
+            value={instructionsDraft}
+            onChange={(e) => setInstructionsDraft(e.target.value)}
+            placeholder="e.g. Respond in bullet points. Focus on practical examples. Use simple language."
+            maxLength={10000}
+            rows={5}
+            className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-600 text-sm resize-none focus-visible:ring-blue-500/30"
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-zinc-600">
+              {instructionsDraft.length}/10000
+            </span>
+            <DialogFooter className="m-0 border-0 bg-transparent p-0 flex-row">
+              <Button
+                variant="ghost"
+                onClick={() => setInstructionsDialogOpen(false)}
+                className="text-zinc-400 hover:text-white rounded-lg text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveInstructions}
+                disabled={instructionsSaving}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs"
+              >
+                {instructionsSaving ? (
+                  <Loader2 className="size-3 animate-spin mr-1.5" />
+                ) : null}
+                Save
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

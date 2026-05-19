@@ -4,6 +4,8 @@ export const notebooks = sqliteTable('notebooks', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
+  customInstructions: text('custom_instructions').notNull().default(''),
+  chatStyle: text('chat_style').notNull().default('default'), // 'default' | 'analyst' | 'guide' | 'creative' | 'concise'
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
@@ -18,6 +20,7 @@ export const sources = sqliteTable('sources', {
   content: text('content').notNull(), // raw extracted text
   metadata: text('metadata').notNull().default('{}'), // JSON string
   fileSize: integer('file_size'),
+  enabled: integer('enabled').notNull().default(1), // 1=enabled, 0=disabled
   createdAt: integer('created_at').notNull(),
 });
 
@@ -42,6 +45,20 @@ export const messages = sqliteTable('messages', {
   role: text('role').notNull(), // 'user' | 'assistant'
   content: text('content').notNull(),
   citations: text('citations').notNull().default('[]'), // JSON string array of Citation
+  createdAt: integer('created_at').notNull(),
+});
+
+export const flashcardSets = sqliteTable('flashcard_sets', {
+  id: text('id').primaryKey(),
+  notebookId: text('notebook_id').notNull().references(() => notebooks.id, { onDelete: 'cascade' }),
+  flashcards: text('flashcards').notNull(), // JSON array of Flashcard objects
+  createdAt: integer('created_at').notNull(),
+});
+
+export const quizSets = sqliteTable('quiz_sets', {
+  id: text('id').primaryKey(),
+  notebookId: text('notebook_id').notNull().references(() => notebooks.id, { onDelete: 'cascade' }),
+  questions: text('questions').notNull(), // JSON array of QuizQuestion objects
   createdAt: integer('created_at').notNull(),
 });
 

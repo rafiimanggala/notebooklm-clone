@@ -1,11 +1,10 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { getContextForQuery } from '@/lib/ai/retrieval';
+import { chatWithSources } from '@/lib/ai/claude';
 
 export async function POST(
   request: NextRequest,
@@ -14,7 +13,6 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Verify notebook exists
     const notebook = db
       .select()
       .from(schema.notebooks)
@@ -29,7 +27,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { message, history } = body;
+    const { message, history, enabledSourceIds, chatStyle } = body;
 
     if (!message || typeof message !== 'string') {
       return Response.json(
@@ -38,7 +36,10 @@ export async function POST(
       );
     }
 
-    // Save user message
+    // Read notebook's customInstructions
+    const customInstructions = (notebook as Record<string, unknown>).customInstructions as string | undefined;
+    const effectiveChatStyle = chatStyle ?? (notebook as Record<string, unknown>).chatStyle as string | undefined;
+
     const userMessageId = uuid();
     const now = Date.now();
 
@@ -53,38 +54,55 @@ export async function POST(
       })
       .run();
 
-    // Get context from sources
-    const { context, citations } = await getContextForQuery(id, message);
+    const { context, citations } = await getContextForQuery(id, message, enabledSourceIds);
 
-    // Build message history
     const chatHistory = (history ?? []).map(
       (m: { role: string; content: string }) => ({
-        role: m.role as 'user' | 'assistant',
+        role: m.role,
         content: m.content,
       })
     );
 
-    // Stream response
-    const result = streamText({
-      model: anthropic('claude-sonnet-4-20250514'),
-      system: `You are a research assistant. Answer based ONLY on the provided sources. Cite using [1], [2] etc.\n\nSources:\n${context}`,
-      messages: [...chatHistory, { role: 'user' as const, content: message }],
-      onFinish: async ({ text }) => {
-        // Save assistant message after stream completes
-        db.insert(schema.messages)
-          .values({
-            id: uuid(),
-            notebookId: id,
-            role: 'assistant',
-            content: text,
-            citations: JSON.stringify(citations),
-            createdAt: Date.now(),
-          })
-          .run();
+    // Limit chat history to last 20 messages (context windowing)
+    const recentHistory = chatHistory.slice(-20);
+
+    const allMessages = [...recentHistory, { role: 'user', content: message }];
+
+    const text = await chatWithSources(allMessages, context, citations, customInstructions ?? '', effectiveChatStyle ?? 'default');
+
+    db.insert(schema.messages)
+      .values({
+        id: uuid(),
+        notebookId: id,
+        role: 'assistant',
+        content: text,
+        citations: JSON.stringify(citations),
+        createdAt: Date.now(),
+      })
+      .run();
+
+    const encoder = new TextEncoder();
+    const words = text.split(/(\s+)/);
+    let wordIndex = 0;
+
+    const stream = new ReadableStream({
+      pull(controller) {
+        if (wordIndex >= words.length) {
+          controller.close();
+          return;
+        }
+        const batch = words.slice(wordIndex, wordIndex + 3).join('');
+        wordIndex += 3;
+        controller.enqueue(encoder.encode(batch));
       },
     });
 
-    return result.toTextStreamResponse();
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
   } catch (error) {
     console.error('Failed to process chat:', error);
     return Response.json(

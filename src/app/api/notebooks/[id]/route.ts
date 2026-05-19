@@ -56,7 +56,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, customInstructions, chatStyle } = body;
 
     const existing = db
       .select()
@@ -87,6 +87,17 @@ export async function PATCH(
 
     if (description !== undefined) {
       updates.description = description?.trim() ?? null;
+    }
+
+    if (customInstructions !== undefined) {
+      updates.customInstructions = typeof customInstructions === 'string' ? customInstructions : '';
+    }
+
+    if (chatStyle !== undefined) {
+      const validStyles = ['default', 'analyst', 'guide', 'creative', 'concise'];
+      if (typeof chatStyle === 'string' && validStyles.includes(chatStyle)) {
+        updates.chatStyle = chatStyle;
+      }
     }
 
     db.update(schema.notebooks)
@@ -131,6 +142,12 @@ export async function DELETE(
     }
 
     // Cascade deletes handled by foreign keys, but explicitly clean up
+    db.delete(schema.flashcardSets)
+      .where(eq(schema.flashcardSets.notebookId, id))
+      .run();
+    db.delete(schema.quizSets)
+      .where(eq(schema.quizSets.notebookId, id))
+      .run();
     db.delete(schema.audioOverviews)
       .where(eq(schema.audioOverviews.notebookId, id))
       .run();

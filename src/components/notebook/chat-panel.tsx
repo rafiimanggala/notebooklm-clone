@@ -20,6 +20,8 @@ interface ChatPanelProps {
   onCitationClick: (citation: Citation) => void;
   hasSources: boolean;
   enabledSourceIds?: Set<string>;
+  chatStyle?: string;
+  onChatStyleChange?: (style: string) => void;
 }
 
 function CitationBadge({
@@ -257,11 +259,22 @@ const SUGGESTED_QUESTIONS = [
   { text: 'Any conflicting viewpoints?', icon: HelpCircle },
 ];
 
+const CHAT_STYLES = [
+  { value: 'default', label: 'Default' },
+  { value: 'analyst', label: 'Analyst' },
+  { value: 'guide', label: 'Guide' },
+  { value: 'creative', label: 'Creative' },
+  { value: 'concise', label: 'Concise' },
+] as const;
+
 export function ChatPanel({
   notebookId,
   initialMessages,
   onCitationClick,
   hasSources,
+  enabledSourceIds,
+  chatStyle,
+  onChatStyleChange,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -313,6 +326,8 @@ export function ChatPanel({
         body: JSON.stringify({
           message: text.trim(),
           history,
+          enabledSourceIds: Array.from(enabledSourceIds ?? []),
+          chatStyle: chatStyle ?? 'default',
         }),
       });
 
@@ -482,6 +497,24 @@ export function ChatPanel({
       {/* Input area */}
       <div className="p-4 pb-5">
         <div className="max-w-3xl mx-auto">
+          {/* Chat style selector */}
+          {onChatStyleChange && (
+            <div className="flex items-center gap-1.5 mb-2.5 px-1">
+              {CHAT_STYLES.map((style) => (
+                <button
+                  key={style.value}
+                  onClick={() => onChatStyleChange(style.value)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                    (chatStyle ?? 'default') === style.value
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-zinc-800/60 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+                  }`}
+                >
+                  {style.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2 bg-zinc-900/80 border border-zinc-800/60 rounded-2xl p-2.5 shadow-lg shadow-black/10 transition-all duration-200 focus-within:border-zinc-700/80 focus-within:shadow-xl focus-within:shadow-black/20">
             <Textarea
               ref={textareaRef}

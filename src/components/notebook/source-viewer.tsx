@@ -51,9 +51,13 @@ export function SourceViewer({ source, highlightText, onClose }: SourceViewerPro
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    // Small delay to let the DOM render the highlight mark before scrolling
+    const timer = setTimeout(() => {
+      if (highlightRef.current) {
+        highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [highlightText]);
 
   const metadata = useMemo(() => {
@@ -74,8 +78,27 @@ export function SourceViewer({ source, highlightText, onClose }: SourceViewerPro
     }
   }
 
+  // Find best matching text in the source content (exact or fuzzy substring)
+  const matchedText = useMemo(() => {
+    if (!highlightText) return null;
+    // Exact match
+    if (source.content.includes(highlightText)) return highlightText;
+    // Case-insensitive match
+    const lowerContent = source.content.toLowerCase();
+    const lowerHighlight = highlightText.toLowerCase();
+    const idx = lowerContent.indexOf(lowerHighlight);
+    if (idx !== -1) return source.content.slice(idx, idx + highlightText.length);
+    // Try matching a significant substring (first 80 chars) for close matches
+    const trimmed = highlightText.slice(0, 80).trim();
+    if (trimmed.length > 20) {
+      const subIdx = lowerContent.indexOf(trimmed.toLowerCase());
+      if (subIdx !== -1) return source.content.slice(subIdx, subIdx + trimmed.length);
+    }
+    return null;
+  }, [highlightText, source.content]);
+
   function renderContent() {
-    if (!highlightText || !source.content.includes(highlightText)) {
+    if (!matchedText) {
       return (
         <p className="text-[13px] text-zinc-300 leading-[1.7] whitespace-pre-wrap">
           {source.content}
@@ -83,7 +106,7 @@ export function SourceViewer({ source, highlightText, onClose }: SourceViewerPro
       );
     }
 
-    const parts = source.content.split(highlightText);
+    const parts = source.content.split(matchedText);
     const elements: React.ReactNode[] = [];
 
     parts.forEach((part, i) => {
@@ -92,13 +115,13 @@ export function SourceViewer({ source, highlightText, onClose }: SourceViewerPro
       );
       if (i < parts.length - 1) {
         elements.push(
-          <span
+          <mark
             key={`highlight-${i}`}
             ref={i === 0 ? highlightRef : undefined}
-            className="bg-yellow-500/20 text-yellow-200 px-0.5 rounded-sm border-b border-yellow-500/30"
+            className="bg-amber-500/25 text-amber-200 px-0.5 rounded-sm border-b-2 border-amber-400/40"
           >
-            {highlightText}
-          </span>,
+            {matchedText}
+          </mark>,
         );
       }
     });

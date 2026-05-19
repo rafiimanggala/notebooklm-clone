@@ -4,7 +4,7 @@ import { BM25Index } from './bm25';
 import { decomposeQuery } from './claude';
 import type { RetrievalResult, Citation, Chunk, Source } from '@/types';
 
-export function buildIndex(notebookId: string): BM25Index {
+export function buildIndex(notebookId: string, enabledSourceIds?: string[]): BM25Index {
   const index = new BM25Index();
 
   const rows = db
@@ -13,7 +13,11 @@ export function buildIndex(notebookId: string): BM25Index {
     .where(eq(schema.chunks.notebookId, notebookId))
     .all();
 
-  for (const chunk of rows) {
+  const filteredRows = enabledSourceIds
+    ? rows.filter(chunk => enabledSourceIds.includes(chunk.sourceId))
+    : rows;
+
+  for (const chunk of filteredRows) {
     index.addDocument(chunk.id, chunk.content);
   }
 
@@ -24,8 +28,9 @@ export async function retrieveChunks(
   notebookId: string,
   query: string,
   topK = 8,
+  enabledSourceIds?: string[],
 ): Promise<RetrievalResult[]> {
-  const index = buildIndex(notebookId);
+  const index = buildIndex(notebookId, enabledSourceIds);
 
   if (index.size === 0) {
     return [];
@@ -97,11 +102,12 @@ export async function retrieveChunks(
 export async function getContextForQuery(
   notebookId: string,
   query: string,
+  enabledSourceIds?: string[],
 ): Promise<{
   context: string;
   citations: Citation[];
 }> {
-  const results = await retrieveChunks(notebookId, query);
+  const results = await retrieveChunks(notebookId, query, 8, enabledSourceIds);
 
   if (results.length === 0) {
     return {

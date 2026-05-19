@@ -3,10 +3,14 @@ export type AudioFormat = 'deep-dive' | 'briefing' | 'critique' | 'debate' | 'cu
 export type MessageRole = 'user' | 'assistant';
 export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz';
 
+export type ChatStyle = 'default' | 'analyst' | 'guide' | 'creative' | 'concise';
+
 export interface Notebook {
   id: string;
   title: string;
   description: string | null;
+  customInstructions?: string;
+  chatStyle?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -20,7 +24,7 @@ export interface Source {
   metadata: string;
   fileSize: number | null;
   createdAt: number;
-  enabled?: boolean;
+  enabled?: number | boolean;
 }
 
 export interface Chunk {
