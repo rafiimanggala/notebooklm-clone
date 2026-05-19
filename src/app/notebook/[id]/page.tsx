@@ -325,12 +325,12 @@ export default function NotebookPage({
       try {
         const savedRes = await fetch(`/api/notebooks/${id}/mind-map`);
         const savedData = await savedRes.json();
-        if (savedData.result) {
-          setRightPanel({ type: 'mind-map', mindMap: savedData.result });
+        if (savedData.mindMap) {
+          setRightPanel({ type: 'mind-map', mindMap: savedData.mindMap });
         } else {
           const res = await fetch(`/api/notebooks/${id}/mind-map`, { method: 'POST' });
           const data = await res.json();
-          setRightPanel({ type: 'mind-map', mindMap: data.result });
+          setRightPanel({ type: 'mind-map', mindMap: data.mindMap });
         }
       } catch {
         setRightPanel({ type: 'studio' });
@@ -349,13 +349,13 @@ export default function NotebookPage({
       try {
         const savedRes = await fetch(`/api/notebooks/${id}/data-table`);
         const savedData = await savedRes.json();
-        if (savedData.result) {
-          const tables = Array.isArray(savedData.result) ? savedData.result : [savedData.result];
+        if (savedData.tables) {
+          const tables = Array.isArray(savedData.tables) ? savedData.tables : [savedData.tables];
           setRightPanel({ type: 'data-table', dataTables: tables });
         } else {
           const res = await fetch(`/api/notebooks/${id}/data-table`, { method: 'POST' });
           const data = await res.json();
-          const tables = Array.isArray(data.result) ? data.result : [data.result];
+          const tables = Array.isArray(data.tables) ? data.tables : [data.tables];
           setRightPanel({ type: 'data-table', dataTables: tables });
         }
       } catch {
@@ -375,13 +375,13 @@ export default function NotebookPage({
       try {
         const savedRes = await fetch(`/api/notebooks/${id}/toc`);
         const savedData = await savedRes.json();
-        if (savedData.result) {
-          const entries = Array.isArray(savedData.result) ? savedData.result : [];
+        if (savedData.toc) {
+          const entries = Array.isArray(savedData.toc) ? savedData.toc : [];
           setRightPanel({ type: 'toc', tocEntries: entries });
         } else {
           const res = await fetch(`/api/notebooks/${id}/toc`, { method: 'POST' });
           const data = await res.json();
-          const entries = Array.isArray(data.result) ? data.result : [];
+          const entries = Array.isArray(data.toc) ? data.toc : [];
           setRightPanel({ type: 'toc', tocEntries: entries });
         }
       } catch {
@@ -401,13 +401,13 @@ export default function NotebookPage({
       try {
         const savedRes = await fetch(`/api/notebooks/${id}/slides`);
         const savedData = await savedRes.json();
-        if (savedData.result) {
-          const slides = Array.isArray(savedData.result) ? savedData.result : [];
+        if (savedData.slides) {
+          const slides = Array.isArray(savedData.slides) ? savedData.slides : [];
           setRightPanel({ type: 'slides', slides });
         } else {
           const res = await fetch(`/api/notebooks/${id}/slides`, { method: 'POST' });
           const data = await res.json();
-          const slides = Array.isArray(data.result) ? data.result : [];
+          const slides = Array.isArray(data.slides) ? data.slides : [];
           setRightPanel({ type: 'slides', slides });
         }
       } catch {
