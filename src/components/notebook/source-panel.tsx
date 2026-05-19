@@ -20,6 +20,8 @@ import {
   Check,
   Layers,
   GraduationCap,
+  FileCode,
+  Table,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,20 +37,26 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Source, SourceType } from '@/types';
+import type { Source } from '@/types';
 
-const SOURCE_ICONS: Record<SourceType, React.ComponentType<{ className?: string }>> = {
+const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   pdf: FileText,
   url: Globe,
   youtube: Video,
   text: AlignLeft,
+  markdown: FileCode,
+  csv: Table,
+  docx: FileText,
 };
 
-const SOURCE_LABELS: Record<SourceType, string> = {
+const SOURCE_LABELS: Record<string, string> = {
   pdf: 'PDF',
-  url: 'URL',
+  url: 'Website',
   youtube: 'YouTube',
   text: 'Text',
+  markdown: 'Markdown',
+  csv: 'CSV',
+  docx: 'Word',
 };
 
 interface SourcePanelProps {
@@ -85,10 +93,16 @@ export function SourcePanel({
   const [urlTitle, setUrlTitle] = useState('');
   const [ytInput, setYtInput] = useState('');
   const [ytTitle, setYtTitle] = useState('');
+  const [mdTitle, setMdTitle] = useState('');
+  const [mdContent, setMdContent] = useState('');
+  const [csvTitle, setCsvTitle] = useState('');
+  const [csvContent, setCsvContent] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docxInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [docxDragOver, setDocxDragOver] = useState(false);
 
   const filteredSources = useMemo(() => {
     if (!searchQuery.trim()) return sources;
@@ -119,6 +133,10 @@ export function SourcePanel({
     setUrlTitle('');
     setYtInput('');
     setYtTitle('');
+    setMdTitle('');
+    setMdContent('');
+    setCsvTitle('');
+    setCsvContent('');
   }
 
   async function handleAddText() {
@@ -221,6 +239,80 @@ export function SourcePanel({
     }
   }
 
+  async function handleAddMarkdown() {
+    if (!mdContent.trim()) return;
+    setUploading(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'markdown',
+          title: mdTitle.trim() || 'Untitled Markdown',
+          content: mdContent.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.source) {
+        onSourceAdd(data.source);
+        resetForm();
+        setDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to add markdown source:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAddCsv() {
+    if (!csvContent.trim()) return;
+    setUploading(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'csv',
+          title: csvTitle.trim() || 'Untitled CSV',
+          content: csvContent.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.source) {
+        onSourceAdd(data.source);
+        resetForm();
+        setDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to add CSV source:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAddDocx(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/notebooks/${notebookId}/sources`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.source) {
+        onSourceAdd(data.source);
+        resetForm();
+        setDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to upload DOCX:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleDelete(sourceId: string) {
     setDeletingId(sourceId);
     try {
@@ -266,34 +358,55 @@ export function SourcePanel({
                 </DialogTitle>
               </DialogHeader>
               <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as string)} className="mt-1">
-                <TabsList className="bg-zinc-800/80 border-zinc-700 w-full">
+                <TabsList className="bg-zinc-800/80 border-zinc-700 w-full flex-wrap h-auto gap-0.5 p-1">
                   <TabsTrigger
                     value="text"
-                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
                   >
                     <AlignLeft className="size-3 mr-1" />
                     Text
                   </TabsTrigger>
                   <TabsTrigger
                     value="url"
-                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
                   >
                     <Link className="size-3 mr-1" />
                     URL
                   </TabsTrigger>
                   <TabsTrigger
                     value="youtube"
-                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
                   >
                     <Video className="size-3 mr-1" />
                     YouTube
                   </TabsTrigger>
                   <TabsTrigger
                     value="pdf"
-                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
                   >
                     <FileText className="size-3 mr-1" />
                     PDF
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="markdown"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
+                  >
+                    <FileCode className="size-3 mr-1" />
+                    MD
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="csv"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
+                  >
+                    <Table className="size-3 mr-1" />
+                    CSV
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="docx"
+                    className="flex-1 data-active:bg-zinc-700 data-active:text-white text-zinc-500 text-xs px-2 py-1"
+                  >
+                    <FileText className="size-3 mr-1" />
+                    DOCX
                   </TabsTrigger>
                 </TabsList>
 
@@ -415,6 +528,103 @@ export function SourcePanel({
                     </span>
                   </button>
                 </TabsContent>
+
+                <TabsContent value="markdown" className="mt-4 space-y-3">
+                  <Input
+                    value={mdTitle}
+                    onChange={(e) => setMdTitle(e.target.value)}
+                    placeholder="Title (optional)"
+                    className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-500 rounded-lg h-8 text-sm"
+                  />
+                  <Textarea
+                    value={mdContent}
+                    onChange={(e) => setMdContent(e.target.value)}
+                    placeholder="Paste your markdown content here..."
+                    className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-500 resize-none min-h-[180px] rounded-lg text-sm font-mono"
+                  />
+                  <DialogFooter className="bg-zinc-900/50 border-zinc-800/60">
+                    <Button
+                      onClick={handleAddMarkdown}
+                      disabled={!mdContent.trim() || uploading}
+                      className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm"
+                    >
+                      {uploading && <Loader2 className="size-3.5 animate-spin mr-1.5" />}
+                      Add Source
+                    </Button>
+                  </DialogFooter>
+                </TabsContent>
+
+                <TabsContent value="csv" className="mt-4 space-y-3">
+                  <Input
+                    value={csvTitle}
+                    onChange={(e) => setCsvTitle(e.target.value)}
+                    placeholder="Title (optional)"
+                    className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-500 rounded-lg h-8 text-sm"
+                  />
+                  <Textarea
+                    value={csvContent}
+                    onChange={(e) => setCsvContent(e.target.value)}
+                    placeholder="Paste CSV data (first row = headers)..."
+                    className="bg-zinc-800/60 border-zinc-700/50 text-white placeholder:text-zinc-500 resize-none min-h-[180px] rounded-lg text-sm font-mono"
+                  />
+                  <DialogFooter className="bg-zinc-900/50 border-zinc-800/60">
+                    <Button
+                      onClick={handleAddCsv}
+                      disabled={!csvContent.trim() || uploading}
+                      className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm"
+                    >
+                      {uploading && <Loader2 className="size-3.5 animate-spin mr-1.5" />}
+                      Add Source
+                    </Button>
+                  </DialogFooter>
+                </TabsContent>
+
+                <TabsContent value="docx" className="mt-4 space-y-3">
+                  <input
+                    ref={docxInputRef}
+                    type="file"
+                    accept=".docx,.doc"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddDocx(file);
+                    }}
+                  />
+                  <button
+                    onClick={() => docxInputRef.current?.click()}
+                    disabled={uploading}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDocxDragOver(true);
+                    }}
+                    onDragLeave={() => setDocxDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDocxDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (
+                        file &&
+                        (file.name.endsWith('.docx') || file.name.endsWith('.doc'))
+                      ) {
+                        handleAddDocx(file);
+                      }
+                    }}
+                    className={`w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-200 cursor-pointer disabled:opacity-50 ${
+                      docxDragOver
+                        ? 'border-blue-500/50 bg-blue-500/5 text-blue-400'
+                        : 'border-zinc-700/50 text-zinc-500 hover:text-zinc-400 hover:border-zinc-600/50'
+                    }`}
+                  >
+                    {uploading ? (
+                      <Loader2 className="size-6 animate-spin" />
+                    ) : (
+                      <FileText className="size-6" />
+                    )}
+                    <span className="text-xs">
+                      {uploading ? 'Uploading...' : 'Drop Word document here or click to browse'}
+                    </span>
+                  </button>
+                </TabsContent>
               </Tabs>
             </DialogContent>
           </Dialog>
@@ -469,7 +679,7 @@ export function SourcePanel({
           ) : (
             <div className="space-y-0.5">
               {filteredSources.map((source) => {
-                const Icon = SOURCE_ICONS[source.type as SourceType] ?? FileText;
+                const Icon = SOURCE_ICONS[source.type] ?? FileText;
                 const isSelected = selectedSourceId === source.id;
                 const isEnabled = enabledSourceIds.has(source.id);
 
@@ -507,7 +717,7 @@ export function SourcePanel({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{source.title}</p>
                       <span className="text-[10px] text-zinc-600">
-                        {SOURCE_LABELS[source.type as SourceType] ?? source.type}
+                        {SOURCE_LABELS[source.type] ?? source.type}
                       </span>
                     </div>
 

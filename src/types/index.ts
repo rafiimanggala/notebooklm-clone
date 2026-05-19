@@ -1,4 +1,4 @@
-export type SourceType = 'pdf' | 'text' | 'url' | 'youtube';
+export type SourceType = 'pdf' | 'text' | 'url' | 'youtube' | 'markdown' | 'csv' | 'docx';
 export type AudioFormat = 'deep-dive' | 'briefing' | 'critique' | 'debate' | 'custom';
 export type MessageRole = 'user' | 'assistant';
 export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz';

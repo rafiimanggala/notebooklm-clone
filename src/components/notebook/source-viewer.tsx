@@ -6,6 +6,9 @@ import {
   Globe,
   Video,
   AlignLeft,
+  Hash,
+  Table,
+  FileType,
   X,
   Copy,
   Check,
@@ -21,6 +24,9 @@ const SOURCE_ICONS: Record<SourceType, React.ComponentType<{ className?: string 
   url: Globe,
   youtube: Video,
   text: AlignLeft,
+  markdown: Hash,
+  csv: Table,
+  docx: FileType,
 };
 
 const SOURCE_LABELS: Record<SourceType, string> = {
@@ -28,6 +34,9 @@ const SOURCE_LABELS: Record<SourceType, string> = {
   url: 'Website',
   youtube: 'YouTube',
   text: 'Text',
+  markdown: 'Markdown',
+  csv: 'CSV',
+  docx: 'DOCX',
 };
 
 interface SourceViewerProps {

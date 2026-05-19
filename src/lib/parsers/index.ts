@@ -3,11 +3,17 @@ import { parsePdf } from './pdf';
 import { parseUrl } from './url';
 import { parseYoutube } from './youtube';
 import { parseText } from './text';
+import { parseMarkdown } from './markdown';
+import { parseCsv } from './csv';
+import { parseDocx } from './docx';
 
 export { parsePdf } from './pdf';
 export { parseUrl } from './url';
 export { parseYoutube } from './youtube';
 export { parseText } from './text';
+export { parseMarkdown } from './markdown';
+export { parseCsv } from './csv';
+export { parseDocx } from './docx';
 
 interface ParseResult {
   title: string;
@@ -69,6 +75,42 @@ export async function parseSource(
         title: result.title,
         content: result.content,
         metadata: { type: 'text' },
+      };
+    }
+
+    case 'markdown': {
+      if (typeof input !== 'string') {
+        throw new Error('Markdown source requires a string input');
+      }
+      const result = await parseMarkdown(input);
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'markdown' },
+      };
+    }
+
+    case 'csv': {
+      if (typeof input !== 'string') {
+        throw new Error('CSV source requires a string input');
+      }
+      const result = await parseCsv(input);
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'csv', columns: result.columns, rowCount: result.rowCount },
+      };
+    }
+
+    case 'docx': {
+      if (!(input instanceof Buffer)) {
+        throw new Error('DOCX source requires a Buffer input');
+      }
+      const result = await parseDocx(input);
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'docx' },
       };
     }
 

@@ -14,9 +14,18 @@ import {
   Lightbulb,
   ListChecks,
   HelpCircle,
+  Download,
+  FileCode,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { SourcePanel } from '@/components/notebook/source-panel';
 import { ChatPanel } from '@/components/notebook/chat-panel';
 import { SourceViewer } from '@/components/notebook/source-viewer';
@@ -340,6 +349,29 @@ export default function NotebookPage({
     setSelectedSourceId(null);
   }
 
+  async function handleExport(format: 'json' | 'chat' | 'markdown') {
+    try {
+      const res = await fetch(`/api/notebooks/${id}/export?format=${format}`);
+      if (!res.ok) throw new Error('Export failed');
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition') ?? '';
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch?.[1] ?? `notebook-export.${format === 'json' ? 'json' : 'md'}`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  }
+
   // Determine if we should show the notebook guide
   const showGuide = sources.length > 0 && messages.length === 0;
 
@@ -432,14 +464,50 @@ export default function NotebookPage({
           </Badge>
         </div>
 
-        <Button
-          onClick={() => setAudioDialogOpen(true)}
-          variant="ghost"
-          className="text-zinc-500 hover:text-white hover:bg-zinc-800/80 gap-2 shrink-0 rounded-lg transition-all duration-200"
-        >
-          <Mic className="size-3.5" />
-          <span className="hidden sm:inline text-xs">Audio Overview</span>
-        </Button>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button className="inline-flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-lg transition-all duration-200 cursor-pointer text-sm" />
+              }
+            >
+              <Download className="size-3.5" />
+              <span className="hidden sm:inline text-xs">Export</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 min-w-[180px]">
+              <DropdownMenuItem
+                onClick={() => handleExport('json')}
+                className="gap-2 text-zinc-300 cursor-pointer"
+              >
+                <FileText className="size-3.5" />
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleExport('chat')}
+                className="gap-2 text-zinc-300 cursor-pointer"
+              >
+                <MessageSquare className="size-3.5" />
+                Export Chat (.md)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleExport('markdown')}
+                className="gap-2 text-zinc-300 cursor-pointer"
+              >
+                <FileCode className="size-3.5" />
+                Export Sources (.md)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            onClick={() => setAudioDialogOpen(true)}
+            variant="ghost"
+            className="text-zinc-500 hover:text-white hover:bg-zinc-800/80 gap-2 shrink-0 rounded-lg transition-all duration-200"
+          >
+            <Mic className="size-3.5" />
+            <span className="hidden sm:inline text-xs">Audio Overview</span>
+          </Button>
+        </div>
       </header>
 
       {/* Three-panel layout */}

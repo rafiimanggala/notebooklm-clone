@@ -71,7 +71,7 @@ export async function POST(
     let fileSize: number | null = null;
 
     if (contentType.includes('multipart/form-data')) {
-      // Handle PDF upload
+      // Handle file upload (PDF, DOCX)
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
 
@@ -82,20 +82,28 @@ export async function POST(
         );
       }
 
-      type = 'pdf';
+      const fileName = file.name ?? '';
+      if (fileName.endsWith('.docx')) {
+        type = 'docx';
+      } else if (fileName.endsWith('.pdf')) {
+        type = 'pdf';
+      } else {
+        type = 'pdf';
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       input = Buffer.from(arrayBuffer);
       fileSize = file.size;
       providedTitle = (formData.get('title') as string) ?? undefined;
     } else {
-      // Handle JSON body for text/url/youtube
+      // Handle JSON body for text/url/youtube/markdown/csv
       const body = await request.json();
       type = body.type;
       providedTitle = body.title;
 
-      if (!type || !['text', 'url', 'youtube'].includes(type)) {
+      if (!type || !['text', 'url', 'youtube', 'markdown', 'csv'].includes(type)) {
         return Response.json(
-          { error: 'Invalid source type. Must be text, url, or youtube' },
+          { error: 'Invalid source type. Must be text, url, youtube, markdown, or csv' },
           { status: 400 }
         );
       }
