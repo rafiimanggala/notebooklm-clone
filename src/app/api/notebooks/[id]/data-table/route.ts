@@ -93,7 +93,8 @@ export async function POST(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
-    const tables = await generateDataTable(sourceContent);
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+    const tables = await generateDataTable(sourceContent, language);
 
     const resultId = uuid();
     const now = Date.now();

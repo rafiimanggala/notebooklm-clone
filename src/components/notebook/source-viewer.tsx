@@ -13,6 +13,9 @@ import {
   Copy,
   Check,
   ExternalLink,
+  BookOpen,
+  Presentation,
+  ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +30,9 @@ const SOURCE_ICONS: Record<SourceType, React.ComponentType<{ className?: string 
   markdown: Hash,
   csv: Table,
   docx: FileType,
+  epub: BookOpen,
+  pptx: Presentation,
+  image: ImageIcon,
 };
 
 const SOURCE_LABELS: Record<SourceType, string> = {
@@ -37,6 +43,9 @@ const SOURCE_LABELS: Record<SourceType, string> = {
   markdown: 'Markdown',
   csv: 'CSV',
   docx: 'DOCX',
+  epub: 'EPUB',
+  pptx: 'PowerPoint',
+  image: 'Image',
 };
 
 interface SourceViewerProps {

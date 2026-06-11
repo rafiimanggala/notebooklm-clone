@@ -1,4 +1,4 @@
-export type SourceType = 'pdf' | 'text' | 'url' | 'youtube' | 'markdown' | 'csv' | 'docx';
+export type SourceType = 'pdf' | 'text' | 'url' | 'youtube' | 'markdown' | 'csv' | 'docx' | 'epub' | 'pptx' | 'image';
 export type AudioFormat = 'deep-dive' | 'briefing' | 'critique' | 'debate' | 'custom';
 export type MessageRole = 'user' | 'assistant';
 export type StudyAidType = 'faq' | 'study-guide' | 'timeline' | 'briefing' | 'flashcard' | 'quiz' | 'mind-map' | 'data-table' | 'toc' | 'slides';
@@ -11,6 +11,7 @@ export interface Notebook {
   description: string | null;
   customInstructions?: string;
   chatStyle?: string;
+  language?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -34,6 +35,7 @@ export interface Chunk {
   content: string;
   chunkIndex: number;
   metadata: string;
+  embedding?: string | null;
 }
 
 export interface Citation {

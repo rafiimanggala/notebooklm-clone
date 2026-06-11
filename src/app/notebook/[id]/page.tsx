@@ -181,6 +181,7 @@ export default function NotebookPage({
   const [enabledSourceIds, setEnabledSourceIds] = useState<Set<string>>(new Set());
   const [customInstructions, setCustomInstructions] = useState('');
   const [chatStyle, setChatStyle] = useState('default');
+  const [language, setLanguage] = useState('English');
   const [instructionsDialogOpen, setInstructionsDialogOpen] = useState(false);
   const [instructionsDraft, setInstructionsDraft] = useState('');
   const [instructionsSaving, setInstructionsSaving] = useState(false);
@@ -203,6 +204,7 @@ export default function NotebookPage({
         setTitleInput(notebookData.notebook.title);
         setCustomInstructions(notebookData.notebook.customInstructions ?? '');
         setChatStyle(notebookData.notebook.chatStyle ?? 'default');
+        setLanguage(notebookData.notebook.language ?? 'English');
       }
       if (sourcesData.sources) {
         setSources(sourcesData.sources);
@@ -944,6 +946,26 @@ export default function NotebookPage({
           <p className="text-xs text-[var(--text-secondary)] -mt-1">
             Tell the AI how to respond. These instructions apply to all chats in this notebook.
           </p>
+          <div>
+            <label className="text-xs text-[var(--text-secondary)] mb-1.5 block">Response Language</label>
+            <select
+              value={language}
+              onChange={async (e) => {
+                const newLang = e.target.value;
+                setLanguage(newLang);
+                await fetch(`/api/notebooks/${id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ language: newLang }),
+                });
+              }}
+              className="w-full bg-[var(--surface)] border border-[var(--outline)] text-[var(--text-primary)] text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--nlm-primary)]/30"
+            >
+              {['English', 'Spanish', 'French', 'German', 'Portuguese', 'Chinese', 'Japanese', 'Korean', 'Indonesian', 'Arabic', 'Hindi', 'Russian', 'Italian', 'Dutch', 'Turkish'].map((lang) => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
+          </div>
           <Textarea
             value={instructionsDraft}
             onChange={(e) => setInstructionsDraft(e.target.value)}

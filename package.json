@@ -9,12 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
     "@base-ui/react": "^1.4.1",
+    "@huggingface/transformers": "^4.2.0",
+    "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.9.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
+    "epub2": "^3.0.2",
     "lucide-react": "^1.14.0",
     "mammoth": "^1.12.0",
     "next": "16.2.6",
@@ -29,6 +33,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",

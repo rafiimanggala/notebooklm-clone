@@ -56,7 +56,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, customInstructions, chatStyle } = body;
+    const { title, description, customInstructions, chatStyle, language } = body;
 
     const existing = db
       .select()
@@ -98,6 +98,10 @@ export async function PATCH(
       if (typeof chatStyle === 'string' && validStyles.includes(chatStyle)) {
         updates.chatStyle = chatStyle;
       }
+    }
+
+    if (language !== undefined && typeof language === 'string' && language.trim()) {
+      updates.language = language.trim();
     }
 
     db.update(schema.notebooks)

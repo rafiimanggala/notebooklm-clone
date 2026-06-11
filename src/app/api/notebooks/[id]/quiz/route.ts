@@ -90,7 +90,8 @@ export async function POST(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
-    const questions = await generateQuiz(sourceContent);
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+    const questions = await generateQuiz(sourceContent, language);
 
     // Save to DB
     const setId = uuid();

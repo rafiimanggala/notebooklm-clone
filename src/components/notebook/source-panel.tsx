@@ -17,6 +17,9 @@ import {
   Layers,
   FileCode,
   Table,
+  BookOpen,
+  Presentation,
+  ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +45,9 @@ const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   markdown: FileCode,
   csv: Table,
   docx: FileText,
+  epub: BookOpen,
+  pptx: Presentation,
+  image: ImageIcon,
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -52,6 +58,9 @@ const SOURCE_LABELS: Record<string, string> = {
   markdown: 'Markdown',
   csv: 'CSV',
   docx: 'Word',
+  epub: 'EPUB',
+  pptx: 'PowerPoint',
+  image: 'Image',
 };
 
 interface SourcePanelProps {
@@ -95,8 +104,14 @@ export function SourcePanel({
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docxInputRef = useRef<HTMLInputElement>(null);
+  const epubInputRef = useRef<HTMLInputElement>(null);
+  const pptxInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [docxDragOver, setDocxDragOver] = useState(false);
+  const [epubDragOver, setEpubDragOver] = useState(false);
+  const [pptxDragOver, setPptxDragOver] = useState(false);
+  const [imageDragOver, setImageDragOver] = useState(false);
 
   const filteredSources = useMemo(() => {
     if (!searchQuery.trim()) return sources;
@@ -305,6 +320,28 @@ export function SourcePanel({
     }
   }
 
+  async function handleAddFile(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/notebooks/${notebookId}/sources`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.source) {
+        onSourceAdd(data.source);
+        resetForm();
+        setDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to upload file:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleDelete(sourceId: string) {
     setDeletingId(sourceId);
     try {
@@ -399,6 +436,27 @@ export function SourcePanel({
                   >
                     <FileText className="size-3 mr-1" />
                     DOCX
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="epub"
+                    className="flex-1 data-active:bg-[var(--primary-container)] data-active:text-[var(--nlm-primary)] text-[var(--text-secondary)] text-xs px-2 py-1"
+                  >
+                    <BookOpen className="size-3 mr-1" />
+                    EPUB
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pptx"
+                    className="flex-1 data-active:bg-[var(--primary-container)] data-active:text-[var(--nlm-primary)] text-[var(--text-secondary)] text-xs px-2 py-1"
+                  >
+                    <Presentation className="size-3 mr-1" />
+                    PPTX
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="image"
+                    className="flex-1 data-active:bg-[var(--primary-container)] data-active:text-[var(--nlm-primary)] text-[var(--text-secondary)] text-xs px-2 py-1"
+                  >
+                    <ImageIcon className="size-3 mr-1" />
+                    Image
                   </TabsTrigger>
                 </TabsList>
 
@@ -615,6 +673,105 @@ export function SourcePanel({
                     <span className="text-xs">
                       {uploading ? 'Uploading...' : 'Drop Word document here or click to browse'}
                     </span>
+                  </button>
+                </TabsContent>
+
+                <TabsContent value="epub" className="mt-4 space-y-3">
+                  <input
+                    ref={epubInputRef}
+                    type="file"
+                    accept=".epub"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddFile(file);
+                    }}
+                  />
+                  <button
+                    onClick={() => epubInputRef.current?.click()}
+                    disabled={uploading}
+                    onDragOver={(e) => { e.preventDefault(); setEpubDragOver(true); }}
+                    onDragLeave={() => setEpubDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setEpubDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file?.name.endsWith('.epub')) handleAddFile(file);
+                    }}
+                    className={`w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-200 cursor-pointer disabled:opacity-50 ${
+                      epubDragOver
+                        ? 'border-[var(--nlm-primary)] bg-[var(--primary-container)] text-[var(--nlm-primary)]'
+                        : 'border-[var(--outline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {uploading ? <Loader2 className="size-6 animate-spin" /> : <BookOpen className="size-6" />}
+                    <span className="text-xs">{uploading ? 'Uploading...' : 'Drop EPUB here or click to browse'}</span>
+                  </button>
+                </TabsContent>
+
+                <TabsContent value="pptx" className="mt-4 space-y-3">
+                  <input
+                    ref={pptxInputRef}
+                    type="file"
+                    accept=".pptx"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddFile(file);
+                    }}
+                  />
+                  <button
+                    onClick={() => pptxInputRef.current?.click()}
+                    disabled={uploading}
+                    onDragOver={(e) => { e.preventDefault(); setPptxDragOver(true); }}
+                    onDragLeave={() => setPptxDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setPptxDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file?.name.endsWith('.pptx')) handleAddFile(file);
+                    }}
+                    className={`w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-200 cursor-pointer disabled:opacity-50 ${
+                      pptxDragOver
+                        ? 'border-[var(--nlm-primary)] bg-[var(--primary-container)] text-[var(--nlm-primary)]'
+                        : 'border-[var(--outline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {uploading ? <Loader2 className="size-6 animate-spin" /> : <Presentation className="size-6" />}
+                    <span className="text-xs">{uploading ? 'Uploading...' : 'Drop PowerPoint here or click to browse'}</span>
+                  </button>
+                </TabsContent>
+
+                <TabsContent value="image" className="mt-4 space-y-3">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.gif,.webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddFile(file);
+                    }}
+                  />
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploading}
+                    onDragOver={(e) => { e.preventDefault(); setImageDragOver(true); }}
+                    onDragLeave={() => setImageDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setImageDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && /\.(png|jpg|jpeg|gif|webp)$/i.test(file.name)) handleAddFile(file);
+                    }}
+                    className={`w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-200 cursor-pointer disabled:opacity-50 ${
+                      imageDragOver
+                        ? 'border-[var(--nlm-primary)] bg-[var(--primary-container)] text-[var(--nlm-primary)]'
+                        : 'border-[var(--outline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {uploading ? <Loader2 className="size-6 animate-spin" /> : <ImageIcon className="size-6" />}
+                    <span className="text-xs">{uploading ? 'Processing image with AI...' : 'Drop image here or click to browse'}</span>
                   </button>
                 </TabsContent>
               </Tabs>

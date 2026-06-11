@@ -46,7 +46,8 @@ export async function GET(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
-    const guide = await generateNotebookGuide(sourceContent);
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+    const guide = await generateNotebookGuide(sourceContent, language);
 
     return Response.json({ guide });
   } catch (error) {

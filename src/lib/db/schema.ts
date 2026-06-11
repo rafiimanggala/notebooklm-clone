@@ -6,6 +6,7 @@ export const notebooks = sqliteTable('notebooks', {
   description: text('description'),
   customInstructions: text('custom_instructions').notNull().default(''),
   chatStyle: text('chat_style').notNull().default('default'), // 'default' | 'analyst' | 'guide' | 'creative' | 'concise'
+  language: text('language').notNull().default('English'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
@@ -35,6 +36,7 @@ export const chunks = sqliteTable('chunks', {
   content: text('content').notNull(),
   chunkIndex: integer('chunk_index').notNull(),
   metadata: text('metadata').notNull().default('{}'), // JSON string
+  embedding: text('embedding'),
 });
 
 export const messages = sqliteTable('messages', {

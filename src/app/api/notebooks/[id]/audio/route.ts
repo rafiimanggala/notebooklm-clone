@@ -63,7 +63,8 @@ export async function POST(
       : format;
 
     // Generate podcast script
-    const script = await generateAudioScript(sourceContent, effectiveFormat);
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+    const script = await generateAudioScript(sourceContent, effectiveFormat, language);
 
     // Save audio overview
     const audioOverview = {

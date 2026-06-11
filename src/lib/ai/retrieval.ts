@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { BM25Index } from './bm25';
-import { decomposeQuery } from './claude';
+import { generateEmbedding, cosineSimilarity } from './embeddings';
 import type { RetrievalResult, Citation, Chunk, Source } from '@/types';
 
 export function buildIndex(notebookId: string, enabledSourceIds?: string[]): BM25Index {
@@ -24,73 +24,104 @@ export function buildIndex(notebookId: string, enabledSourceIds?: string[]): BM2
   return index;
 }
 
+async function ensureEmbeddings(notebookId: string, enabledSourceIds?: string[]) {
+  const rows = db
+    .select()
+    .from(schema.chunks)
+    .where(eq(schema.chunks.notebookId, notebookId))
+    .all();
+
+  const filtered = enabledSourceIds
+    ? rows.filter(chunk => enabledSourceIds.includes(chunk.sourceId))
+    : rows;
+
+  const missing = filtered.filter(c => !c.embedding);
+  if (missing.length === 0) return;
+
+  for (const chunk of missing) {
+    const emb = await generateEmbedding(chunk.content);
+    db.update(schema.chunks)
+      .set({ embedding: JSON.stringify(emb) })
+      .where(eq(schema.chunks.id, chunk.id))
+      .run();
+  }
+}
+
 export async function retrieveChunks(
   notebookId: string,
   query: string,
   topK = 8,
   enabledSourceIds?: string[],
 ): Promise<RetrievalResult[]> {
-  const index = buildIndex(notebookId, enabledSourceIds);
+  const rows = db
+    .select()
+    .from(schema.chunks)
+    .where(eq(schema.chunks.notebookId, notebookId))
+    .all();
 
-  if (index.size === 0) {
-    return [];
-  }
+  const filtered = enabledSourceIds
+    ? rows.filter(chunk => enabledSourceIds.includes(chunk.sourceId))
+    : rows;
 
-  // Primary search
-  const primaryResults = index.search(query, topK);
+  if (filtered.length === 0) return [];
 
-  // Generate alternative queries for broader coverage
-  let altQueries: string[] = [];
-  try {
-    altQueries = await decomposeQuery(query);
-  } catch {
-    // If query decomposition fails, continue with primary results only
-  }
+  const hasEmbeddings = filtered.some(c => c.embedding);
 
-  // Search with each alternative query
-  const allResults = new Map<string, number>();
+  if (hasEmbeddings) {
+    await ensureEmbeddings(notebookId, enabledSourceIds);
 
-  for (const result of primaryResults) {
-    allResults.set(result.id, result.score);
-  }
-
-  for (const altQuery of altQueries) {
-    const altResults = index.search(altQuery, topK);
-    for (const result of altResults) {
-      const existing = allResults.get(result.id) ?? 0;
-      // Keep the higher score
-      allResults.set(result.id, Math.max(existing, result.score));
-    }
-  }
-
-  // Sort by score descending, take topK
-  const merged = Array.from(allResults.entries())
-    .map(([id, score]) => ({ id, score }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
-
-  // Fetch full chunk + source data
-  const results: RetrievalResult[] = [];
-
-  for (const match of merged) {
-    const chunkRow = db
+    const refreshed = db
       .select()
       .from(schema.chunks)
-      .where(eq(schema.chunks.id, match.id))
-      .get();
+      .where(eq(schema.chunks.notebookId, notebookId))
+      .all();
 
-    if (!chunkRow) continue;
+    const freshFiltered = enabledSourceIds
+      ? refreshed.filter(chunk => enabledSourceIds.includes(chunk.sourceId))
+      : refreshed;
 
+    const queryEmb = await generateEmbedding(query);
+
+    const scored = freshFiltered
+      .filter(c => c.embedding)
+      .map(c => ({
+        chunk: c,
+        score: cosineSimilarity(queryEmb, JSON.parse(c.embedding!) as number[]),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK);
+
+    return fetchResults(scored);
+  }
+
+  // Fallback: BM25 for chunks without embeddings
+  const index = buildIndex(notebookId, enabledSourceIds);
+  const bm25Results = index.search(query, topK);
+
+  const scored = bm25Results.map(r => {
+    const chunk = filtered.find(c => c.id === r.id)!;
+    return { chunk, score: r.score };
+  }).filter(r => r.chunk);
+
+  return fetchResults(scored);
+}
+
+function fetchResults(
+  scored: { chunk: { id: string; sourceId: string; notebookId: string; content: string; chunkIndex: number; metadata: string; embedding: string | null }; score: number }[],
+): RetrievalResult[] {
+  const results: RetrievalResult[] = [];
+
+  for (const match of scored) {
     const sourceRow = db
       .select()
       .from(schema.sources)
-      .where(eq(schema.sources.id, chunkRow.sourceId))
+      .where(eq(schema.sources.id, match.chunk.sourceId))
       .get();
 
     if (!sourceRow) continue;
 
     results.push({
-      chunk: chunkRow as Chunk,
+      chunk: match.chunk as Chunk,
       score: match.score,
       source: sourceRow as Source,
     });

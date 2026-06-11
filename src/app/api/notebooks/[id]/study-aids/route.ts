@@ -55,39 +55,41 @@ export async function POST(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+
     // Route to appropriate generator
     if (type === 'flashcard') {
-      const flashcards = await generateFlashcards(sourceContent);
+      const flashcards = await generateFlashcards(sourceContent, language);
       return Response.json({ flashcards });
     }
 
     if (type === 'quiz') {
-      const questions = await generateQuiz(sourceContent);
+      const questions = await generateQuiz(sourceContent, language);
       return Response.json({ questions });
     }
 
     if (type === 'mind-map') {
-      const mindMap = await generateMindMap(sourceContent);
+      const mindMap = await generateMindMap(sourceContent, language);
       return Response.json({ mindMap });
     }
 
     if (type === 'data-table') {
-      const tables = await generateDataTable(sourceContent);
+      const tables = await generateDataTable(sourceContent, language);
       return Response.json({ tables });
     }
 
     if (type === 'toc') {
-      const toc = await generateTOC(sourceContent);
+      const toc = await generateTOC(sourceContent, language);
       return Response.json({ toc });
     }
 
     if (type === 'slides') {
-      const slides = await generateSlides(sourceContent);
+      const slides = await generateSlides(sourceContent, language);
       return Response.json({ slides });
     }
 
     // Generate standard study aid
-    const content = await generateStudyAid(type, sourceContent);
+    const content = await generateStudyAid(type, sourceContent, language);
 
     return Response.json({
       studyAid: { type, content },

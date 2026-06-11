@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { parseSource } from '@/lib/parsers';
 import { chunkText } from '@/lib/chunker';
+import { generateEmbedding } from '@/lib/ai/embeddings';
 import type { SourceType } from '@/types';
 
 export async function GET(
@@ -69,9 +70,9 @@ export async function POST(
     let input: Buffer | string;
     let providedTitle: string | undefined;
     let fileSize: number | null = null;
+    let mimeType: string | undefined;
 
     if (contentType.includes('multipart/form-data')) {
-      // Handle file upload (PDF, DOCX)
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
 
@@ -83,7 +84,14 @@ export async function POST(
       }
 
       const fileName = file.name ?? '';
-      if (fileName.endsWith('.docx')) {
+      if (fileName.endsWith('.epub')) {
+        type = 'epub';
+      } else if (fileName.endsWith('.pptx')) {
+        type = 'pptx';
+      } else if (/\.(png|jpg|jpeg|gif|webp)$/i.test(fileName)) {
+        type = 'image';
+        mimeType = file.type || 'image/png';
+      } else if (fileName.endsWith('.docx')) {
         type = 'docx';
       } else if (fileName.endsWith('.pdf')) {
         type = 'pdf';
@@ -96,7 +104,6 @@ export async function POST(
       fileSize = file.size;
       providedTitle = (formData.get('title') as string) ?? undefined;
     } else {
-      // Handle JSON body for text/url/youtube/markdown/csv
       const body = await request.json();
       type = body.type;
       providedTitle = body.title;
@@ -118,8 +125,7 @@ export async function POST(
       input = body.content;
     }
 
-    // Parse source
-    const parsed = await parseSource(type, input);
+    const parsed = await parseSource(type, input, mimeType);
     const title = providedTitle?.trim() || parsed.title;
 
     // Chunk content
@@ -142,8 +148,9 @@ export async function POST(
 
     db.insert(schema.sources).values(source).run();
 
-    // Save chunks
+    // Save chunks with embeddings
     for (let i = 0; i < textChunks.length; i++) {
+      const emb = await generateEmbedding(textChunks[i]);
       db.insert(schema.chunks)
         .values({
           id: uuid(),
@@ -157,6 +164,7 @@ export async function POST(
             chunkIndex: i,
             totalChunks: textChunks.length,
           }),
+          embedding: JSON.stringify(emb),
         })
         .run();
     }

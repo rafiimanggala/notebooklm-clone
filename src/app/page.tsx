@@ -15,6 +15,7 @@ import {
   MoreVertical,
   Trash2,
   Search,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +75,7 @@ export default function NotebooksPage() {
   const [newDescription, setNewDescription] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const fetchNotebooks = useCallback(async () => {
     try {
@@ -121,6 +123,26 @@ export default function NotebooksPage() {
     }
   }
 
+  async function handleImport(file: File) {
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/notebooks/import', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.notebook) {
+        router.push(`/notebook/${data.notebook.id}`);
+      }
+    } catch (err) {
+      console.error('Failed to import notebook:', err);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   async function handleDelete(notebookId: string) {
     setDeletingId(notebookId);
     try {
@@ -162,6 +184,25 @@ export default function NotebooksPage() {
           {/* Right — Actions */}
           <div className="flex items-center gap-2 shrink-0">
             <ThemeToggle />
+
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) handleImport(file);
+                };
+                input.click();
+              }}
+              disabled={importing}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-container)] gap-2 rounded-full h-9 px-4 text-sm transition-all duration-200"
+            >
+              {importing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              <span className="hidden sm:inline">Import</span>
+            </Button>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger

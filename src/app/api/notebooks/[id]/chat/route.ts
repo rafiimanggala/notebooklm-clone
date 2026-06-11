@@ -4,7 +4,7 @@ import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { getContextForQuery } from '@/lib/ai/retrieval';
-import { chatWithSources } from '@/lib/ai/claude';
+import { streamChatWithSources } from '@/lib/ai/claude';
 
 export async function POST(
   request: NextRequest,
@@ -36,9 +36,9 @@ export async function POST(
       );
     }
 
-    // Read notebook's customInstructions
     const customInstructions = (notebook as Record<string, unknown>).customInstructions as string | undefined;
     const effectiveChatStyle = chatStyle ?? (notebook as Record<string, unknown>).chatStyle as string | undefined;
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
 
     const userMessageId = uuid();
     const now = Date.now();
@@ -63,41 +63,38 @@ export async function POST(
       })
     );
 
-    // Limit chat history to last 20 messages (context windowing)
     const recentHistory = chatHistory.slice(-20);
-
     const allMessages = [...recentHistory, { role: 'user', content: message }];
 
-    const text = await chatWithSources(allMessages, context, citations, customInstructions ?? '', effectiveChatStyle ?? 'default');
+    const aiStream = streamChatWithSources(
+      allMessages, context, citations,
+      customInstructions ?? '', effectiveChatStyle ?? 'default',
+      language,
+    );
 
-    db.insert(schema.messages)
-      .values({
-        id: uuid(),
-        notebookId: id,
-        role: 'assistant',
-        content: text,
-        citations: JSON.stringify(citations),
-        createdAt: Date.now(),
-      })
-      .run();
-
-    const encoder = new TextEncoder();
-    const words = text.split(/(\s+)/);
-    let wordIndex = 0;
-
-    const stream = new ReadableStream({
-      pull(controller) {
-        if (wordIndex >= words.length) {
-          controller.close();
-          return;
-        }
-        const batch = words.slice(wordIndex, wordIndex + 3).join('');
-        wordIndex += 3;
-        controller.enqueue(encoder.encode(batch));
+    let fullText = '';
+    const transform = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        fullText += new TextDecoder().decode(chunk);
+        controller.enqueue(chunk);
+      },
+      flush() {
+        db.insert(schema.messages)
+          .values({
+            id: uuid(),
+            notebookId: id,
+            role: 'assistant',
+            content: fullText,
+            citations: JSON.stringify(citations),
+            createdAt: Date.now(),
+          })
+          .run();
       },
     });
 
-    return new Response(stream, {
+    const responseStream = aiStream.pipeThrough(transform);
+
+    return new Response(responseStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',

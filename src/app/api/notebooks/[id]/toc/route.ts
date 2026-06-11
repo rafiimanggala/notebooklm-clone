@@ -93,7 +93,8 @@ export async function POST(
       .map((s, i) => `[Source ${i + 1}: ${s.title}]\n${s.content}`)
       .join('\n\n---\n\n');
 
-    const toc = await generateTOC(sourceContent);
+    const language = (notebook as Record<string, unknown>).language as string | undefined;
+    const toc = await generateTOC(sourceContent, language);
 
     const resultId = uuid();
     const now = Date.now();

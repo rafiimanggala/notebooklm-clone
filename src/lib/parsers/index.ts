@@ -6,6 +6,9 @@ import { parseText } from './text';
 import { parseMarkdown } from './markdown';
 import { parseCsv } from './csv';
 import { parseDocx } from './docx';
+import { parseEpub } from './epub';
+import { parsePptx } from './pptx';
+import { parseImage } from './image';
 
 export { parsePdf } from './pdf';
 export { parseUrl } from './url';
@@ -14,6 +17,9 @@ export { parseText } from './text';
 export { parseMarkdown } from './markdown';
 export { parseCsv } from './csv';
 export { parseDocx } from './docx';
+export { parseEpub } from './epub';
+export { parsePptx } from './pptx';
+export { parseImage } from './image';
 
 interface ParseResult {
   title: string;
@@ -24,6 +30,7 @@ interface ParseResult {
 export async function parseSource(
   type: SourceType,
   input: Buffer | string,
+  mimeType?: string,
 ): Promise<ParseResult> {
   switch (type) {
     case 'pdf': {
@@ -111,6 +118,42 @@ export async function parseSource(
         title: result.title,
         content: result.content,
         metadata: { type: 'docx' },
+      };
+    }
+
+    case 'epub': {
+      if (!(input instanceof Buffer)) {
+        throw new Error('EPUB source requires a Buffer input');
+      }
+      const result = await parseEpub(input);
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'epub', chapters: result.chapters },
+      };
+    }
+
+    case 'pptx': {
+      if (!(input instanceof Buffer)) {
+        throw new Error('PPTX source requires a Buffer input');
+      }
+      const result = await parsePptx(input);
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'pptx', slideCount: result.slideCount },
+      };
+    }
+
+    case 'image': {
+      if (!(input instanceof Buffer)) {
+        throw new Error('Image source requires a Buffer input');
+      }
+      const result = await parseImage(input, mimeType ?? 'image/png');
+      return {
+        title: result.title,
+        content: result.content,
+        metadata: { type: 'image' },
       };
     }
 

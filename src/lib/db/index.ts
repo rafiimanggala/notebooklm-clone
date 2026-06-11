@@ -26,6 +26,8 @@ export { schema };
 try { db.run(sql`ALTER TABLE sources ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1`); } catch {}
 try { db.run(sql`ALTER TABLE notebooks ADD COLUMN custom_instructions TEXT NOT NULL DEFAULT ''`); } catch {}
 try { db.run(sql`ALTER TABLE notebooks ADD COLUMN chat_style TEXT NOT NULL DEFAULT 'default'`); } catch {}
+try { db.run(sql`ALTER TABLE notebooks ADD COLUMN language TEXT NOT NULL DEFAULT 'English'`); } catch {}
+try { db.run(sql`ALTER TABLE chunks ADD COLUMN embedding TEXT`); } catch {}
 
 // Migration: create new tables (idempotent)
 try {
